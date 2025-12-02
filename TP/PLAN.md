@@ -38,8 +38,6 @@ Nomenclature :
 
 PyTest : `tests/test_triangulation.py`, `tests/test_binary.py`
 
----
-
 ## 1.2 Niveau « API » (intégration)
 Objectif : vérifier que l’API du Triangulator répond bien comme prévu
 
