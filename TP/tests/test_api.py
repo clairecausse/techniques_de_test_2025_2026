@@ -1,43 +1,62 @@
-import pytest
 from triangulator.api import create_app
 
-# Tests unitaires pour l'API de triangulation
-def test_api_success(mocker):
+
+def test_api_success(monkeypatch):
     app = create_app()
     client = app.test_client()
 
-    # faux binaire pour simuler un pointset
-    fake_pointset = b"\x00\x00\x00\x01" + b"\x00"*8
+    # Faux binaire pour simuler un pointset valide
+    fake_pointset = b"\x00\x00\x00\x01" + b"\x00" * 8
 
-    fake_response = mocker.Mock()
-    fake_response.status_code = 200
-    fake_response.content = fake_pointset
+    class FakeResponse:
+        status_code = 200
+        content = fake_pointset
 
-    mocker.patch("triangulator.api.requests.get", return_value=fake_response)
+    # Mock de requests.get
+    def fake_get(*args, **kwargs):
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "triangulator.api.requests.get",
+        fake_get
+    )
 
     response = client.get("/triangulate?set_id=1")
     assert response.status_code == 200
 
+
 def test_missing_set_id():
     app = create_app()
     client = app.test_client()
+
     response = client.get("/triangulate")
-    assert response.status_code == 400 # Verifie que l'absence de set_id retourne 400
+    assert response.status_code == 400  # absence de set_id
+
 
 def test_invalid_set_id():
     app = create_app()
     client = app.test_client()
-    response = client.get("/triangulate?set_id=abc")
-    assert response.status_code == 400 # Verifie que un set_id non entier retourne 400
 
-def test_pointsetmanager_failure(mocker):
+    response = client.get("/triangulate?set_id=abc")
+    assert response.status_code == 400  # set_id non entier
+
+
+def test_pointsetmanager_failure(monkeypatch):
     app = create_app()
     client = app.test_client()
 
-    fake_response = mocker.Mock()
-    fake_response.status_code = 500
+    class FakeResponse:
+        status_code = 500
+        content = b""
 
-    mocker.patch("triangulator.api.requests.get", return_value=fake_response)
+    # Mock simulant une erreur du service externe
+    def fake_get(*args, **kwargs):
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "triangulator.api.requests.get",
+        fake_get
+    )
 
     response = client.get("/triangulate?set_id=1")
-    assert response.status_code == 502 # Verifie que une erreur du service externe retourne 502
+    assert response.status_code == 502  # erreur service externe

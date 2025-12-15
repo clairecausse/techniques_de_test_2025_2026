@@ -1,0 +1,16 @@
+line-length = 88
+
+[lint]
+select = ["E", "F", "B", "I", "D", "UP"]
+ignore = [
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D401",
+  "D417"
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["D"]

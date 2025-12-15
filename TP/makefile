@@ -1,41 +1,43 @@
-#commandes de base (évite les répétitions)
-PY        := python3
-PIP       := $(PY) -m pip
-PYTEST    := $(PY) -m pytest
-COVERAGE  := $(PY) -m coverage
 
-# Ce marker servira à isoler les tests de performance
-PERF_MARK := performance
+PY              := ./.venv/bin/python
+PIP             := ./.venv/bin/pip
+PYTEST          := $(PY) -m pytest
+COVERAGE        := $(PY) -m coverage
 
-# chemin du Python dans le dossier courant
-PYTHONPATH := .
+# Marker utilisé pour isoler les tests de performance
+PERF_MARK       := performance
 
-# Les cibles ci-dessous ne créent pas de fichiers. C'est une bonne pratique de les déclarer comme .PHONY
-.PHONY: help venv install install-dev test unit_test perf_test coverage lint doc run clean
+# PYTHONPATH local pour l'import des modules
+PYTHONPATH      := .
+
+.PHONY: help venv install install-dev test test-verbose unit_test perf_test coverage lint doc run clean
+
 
 
 help:
 	@echo "Commandes disponibles :"
-	@echo "  make venv         -> crée un environnement virtuel Python (.venv)"
-	@echo "  make install      -> installe les dépendances runtime"
-	@echo "  make install-dev  -> installe les dépendances de développement"
-	@echo "  make test         -> lance tous les tests sauf les tests de performance"
-	@echo "  make unit_test    -> alias de 'test'"
-	@echo "  make perf_test    -> lance uniquement les tests de performance"
-	@echo "  make coverage     -> génère un rapport de couverture HTML"
-	@echo "  make lint         -> vérifie la qualité du code avec ruff"
-	@echo "  make doc          -> génère la documentation HTML avec pdoc"
-	@echo "  make run          -> lance l'API Flask pour des tests manuels"
-	@echo "  make clean        -> supprime les fichiers temporaires"
+	@echo "  make venv          -> crée un environnement virtuel Python (.venv)"
+	@echo "  make install       -> installe les dépendances runtime"
+	@echo "  make install-dev   -> installe les dépendances de développement"
+	@echo "  make test          -> lance les tests unitaires (hors performance)"
+	@echo "  make test-verbose  -> lance les tests avec affichage détaillé"
+	@echo "  make unit_test     -> alias de 'test' (consigne du TP)"
+	@echo "  make perf_test     -> lance uniquement les tests de performance"
+	@echo "  make coverage      -> génère un rapport de couverture HTML"
+	@echo "  make lint          -> vérifie la qualité du code avec ruff"
+	@echo "  make doc           -> génère la documentation HTML avec pdoc"
+	@echo "  make run           -> lance l'API Flask pour tests manuels"
+	@echo "  make clean         -> nettoie l'environnement et fichiers temporaires"
 
 
-# environnement virtuel local
+# Alias demandé par l'énoncé du TP
+unit_test: test
+
 venv:
-	$(PY) -m venv .venv
+	python3 -m venv .venv
 	. .venv/bin/activate && $(PIP) install --upgrade pip setuptools wheel
 
 
-# install les dependences
 install: venv
 	. .venv/bin/activate && $(PIP) install -r requirements.txt
 
@@ -43,43 +45,31 @@ install-dev: venv
 	. .venv/bin/activate && $(PIP) install -r dev_requirements.txt
 
 
-# Lance tous les tests qui ne sont pas des tests de performance
-# Les tests de performance sont exclus car ils peuvent être longs
+# Tests unitaires
 test:
-	PYTHONPATH=$(PYTHONPATH) $(PYTEST) -q -m "not $(PERF_MARK)"
+	PYTHONPATH=$(PYTHONPATH) $(PYTEST) -v -ra
 
 
-# Alias de test pour respecter les consignes du TP
-unit_test: test
+test-wp:
+	PYTHONPATH=$(PYTHONPATH) $(PYTEST) -v -ra -m "not $(PERF_MARK)"
 
 
-# Lance uniquement les tests marqués comme tests de performance
-perf_test:
-	PYTHONPATH=$(PYTHONPATH) $(PYTEST) -q -m "$(PERF_MARK)"
+# Tests de performance uniquement
+perf:
+	PYTHONPATH=$(PYTHONPATH) $(PYTEST) -v -m "$(PERF_MARK)"
 
-
-# Exécute les tests sous coverage puis génère un rapport HTML dans htmlcov/
 coverage:
-	PYTHONPATH=$(PYTHONPATH) $(COVERAGE) run -m pytest
+	PYTHONPATH=$(PYTHONPATH) $(COVERAGE) run -m pytest -m "not $(PERF_MARK)"
 	$(COVERAGE) html -d htmlcov
-	@echo "Rapport de couverture disponible dans htmlcov/index.html"
 
-
-# Vérifie la qualité du code Python avec ruff
 lint:
 	. .venv/bin/activate && $(PY) -m ruff check triangulator tests
 
-
-# Génère la doc HTML via pdoc dans un dossier docs/
 doc:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m pdoc --html triangulator --output-dir docs --force
 
-
-# Lance le serveur Flask pour des essais manuels
 run:
-	PYTHONPATH=$(PYTHONPATH) FLASK_APP=triangulator.api flask run --port=5000
+	PYTHONPATH=$(PYTHONPATH) FLASK_APP=triangulator.api flask run --port=5001
 
-
-# Nettoie l'environnement et les fichiers générés
 clean:
 	rm -rf .venv __pycache__ htmlcov docs .pytest_cache .coverage
